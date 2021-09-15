@@ -1,9 +1,9 @@
 package indents
 
 // NOTE
-// A text editor might report this file as having a mixed-indent error
-// Please ignore, because text fixtures embedded in this file have
-// tests for both tab and space indentation. Do not fix it.
+// A text editor might report this file as having a mixed-indent error.
+// Please ignore, because text fixtures embedded in this file have tests
+// for both tab and space indentation. Do not fix it.
 
 import (
 	"errors"

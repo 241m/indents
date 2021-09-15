@@ -15,7 +15,7 @@ const (
 // Style //
 ///////////
 
-// Encapsulates an indentation style..
+// Encapsulates an indentation style.
 type Style struct {
 	Char rune // The indent character.
 	Size int  // Number of subsequent Char's considered as 1 indent.
