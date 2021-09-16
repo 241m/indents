@@ -3,6 +3,7 @@ package indents
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 )
 
@@ -92,6 +93,14 @@ type Line struct {
 // Successive calls to the Scan method will step through the lines of
 // a file. Call the Line method to get the current *Line struct, with
 // the indentation level calculated and set.
+//
+// The IndentScanner is indentation-"dumb", it merely detects the
+// indentation size of each line and sets it on the *Line struct.
+// It's up to the caller to assert any indentation-aware logic.
+//
+// See the ParseNodeTree function, where Lines produced by this
+// scanner are parsed in an indentation-aware manner and converted
+// into a tree structure.
 type IndentScanner struct {
 	scanner *bufio.Scanner
 	style   *Style
@@ -158,4 +167,95 @@ func (s *IndentScanner) Lines() int {
 // called before.
 func (s *IndentScanner) Style() *Style {
 	return s.style
+}
+
+///////////////////
+// ParseNodeTree //
+///////////////////
+
+type ExtraIndentationError struct {
+	Line int // Line number where the error is found.
+}
+
+func (e *ExtraIndentationError) Error() string {
+	return fmt.Sprintf("Extra indentation at line %d", e.Line)
+}
+
+// Encapsulates a node in an tree.
+type Node struct {
+	Line     *Line   // The corresponding Line
+	Parent   *Node   // This node's parent node
+	Children []*Node // This node's child nodes
+}
+
+func (n *Node) Level() int {
+	if n.Line == nil {
+		return -1
+	} else {
+		return n.Line.Level
+	}
+}
+
+func (n *Node) Number() int {
+	if n.Line == nil {
+		return -1
+	} else {
+		return n.Line.Number
+	}
+}
+
+func (n *Node) Text() string {
+	if n.Line == nil {
+		return ""
+	} else {
+		return n.Line.Text
+	}
+}
+
+// Read lines from an IndentScanner and produce a node tree sructure.
+func ParseNodeTree(scanner *IndentScanner, root *Node) (*Node, error) {
+	if root == nil {
+		root = &Node{}
+	}
+
+	root.Line = nil
+	root.Parent = nil
+
+	bloc := root
+	prev := root
+
+	for scanner.Scan() {
+		line := scanner.Line()
+
+		// Ignore empty lines
+		if len(line.Text) == 0 {
+			continue
+		}
+
+		switch {
+		case line.Level == prev.Level():
+			// Same level
+			// noop
+		case line.Level == prev.Level()+1:
+			// +1 indent
+			bloc = prev
+		case line.Level < prev.Level():
+			// -N indent
+			for {
+				bloc = bloc.Parent
+				if bloc.Level() == line.Level-1 {
+					break
+				}
+			}
+		default:
+			// +N indent: error: extra indentation
+			return root, &ExtraIndentationError{line.Number}
+		}
+
+		node := &Node{line, bloc, make([]*Node, 0)}
+		bloc.Children = append(bloc.Children, node)
+		prev = node
+	}
+
+	return root, nil
 }

@@ -115,6 +115,10 @@ func TestStyleTabs(t *testing.T) {
 	}
 }
 
+/////////////////////////
+// IndentScanner tests //
+/////////////////////////
+
 func parseLineLevel(number int, line string) *Line {
 	var (
 		level int64
@@ -134,6 +138,11 @@ func parseLineLevel(number int, line string) *Line {
 	return &Line{line, number, int(level)}
 }
 
+func makeIndentScanner(text string, style *Style) *IndentScanner {
+	reader := strings.NewReader(strings.TrimSpace(text))
+	return NewIndentScanner(reader, style)
+}
+
 // key   - the `tk` test key (see makeTestTexts)
 // text  - indendeted text formatted properly (see makeTestTexts)
 // count - expected line count
@@ -143,8 +152,7 @@ func runIndentScannerTest(
 	text string,
 	count int,
 ) *IndentScanner {
-	reader := strings.NewReader(strings.TrimSpace(text))
-	scanner := NewIndentScanner(reader, key.style)
+	scanner := makeIndentScanner(text, key.style)
 
 	var n int
 
@@ -186,6 +194,48 @@ func TestIndentScannerErr(t *testing.T) {
 	assert.Equal(t, scr.Err(), err)
 }
 
+/////////////////////////
+// ParseNodeTree tests //
+/////////////////////////
+
+func testNode(t *testing.T, node *Node, parent *Node) {
+	// Test line only if not root
+	if node.Level() >= 0 {
+		num := node.Number()
+		txt := node.Text()
+		assert.DeepEqual(t, parseLineLevel(num, txt), node.Line)
+	}
+
+	assert.Equal(t, node.Parent, parent)
+
+	for _, n := range node.Children {
+		testNode(t, n, node)
+	}
+}
+
+func TestParseNodeTree(t *testing.T) {
+	for k, text := range makeTestTexts() {
+		t.Run(k.name, func(t *testing.T) {
+			scan := makeIndentScanner(text, k.style)
+			root, err := ParseNodeTree(scan, nil)
+
+			assert.Assert(t, root.Parent == nil)
+			assert.Assert(t, root.Line == nil)
+			assert.Equal(t, root.Text(), "")
+			assert.Equal(t, root.Number(), -1)
+			assert.Equal(t, root.Level(), -1)
+
+			// If text has (extra) indentation, should return error
+			if strings.HasSuffix(k.name, "(extra)") {
+				assert.ErrorContains(t, err, "Extra indentation at line ")
+			} else {
+				assert.NilError(t, err)
+				testNode(t, root, nil)
+			}
+		})
+	}
+}
+
 ///////////////////
 // Test fixtures //
 ///////////////////
@@ -207,11 +257,15 @@ func makeTestTexts() map[tk]string {
 0
 0
 `
-
 	texts[tk{"1 level step", 3, ts, ts}] = `
 0
 	1
 		2
+		`
+	texts[tk{"1 level steps (extra)", 3, ts, ts}] = `
+0
+	1
+			3
 		`
 	texts[tk{"1 level step with empty lines", 5, ts, ts}] = `
 0
@@ -219,6 +273,13 @@ func makeTestTexts() map[tk]string {
 	1
 
 		2
+		`
+	texts[tk{"1 level step with empty lines (extra)", 5, ts, ts}] = `
+0
+
+		2
+
+			3
 		`
 	texts[tk{"1 level multiline", 10, ts, ts}] = `
 0
