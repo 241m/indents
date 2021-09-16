@@ -181,7 +181,7 @@ func (e *ExtraIndentationError) Error() string {
 	return fmt.Sprintf("Extra indentation at line %d", e.Line)
 }
 
-// Encapsulates a node in an tree.
+// Encapsulates a node in a tree.
 type Node struct {
 	Line     *Line   // The corresponding Line
 	Parent   *Node   // This node's parent node
