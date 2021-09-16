@@ -212,10 +212,32 @@ func (n *Node) Text() string {
 	}
 }
 
+type NodeProcessor func(node *Node, options *ParseNodeTreeOptions) error
+
+// Options to pass to ParseNodeTree function to customize its behaviour.
+type ParseNodeTreeOptions struct {
+	// If true, extra indentations will be ignored.
+	IgnoreExtraIndentation bool
+
+	// If set, this function will be called on each Node generated.
+	Processor NodeProcessor
+}
+
 // Read lines from an IndentScanner and produce a node tree sructure.
-func ParseNodeTree(scanner *IndentScanner, root *Node) (*Node, error) {
+//
+// Behaviour of the parser can be customized with the options argument.
+// See ParseNodeTreeOptions.
+func ParseNodeTree(
+	scanner *IndentScanner,
+	root *Node,
+	options *ParseNodeTreeOptions,
+) (*Node, error) {
 	if root == nil {
 		root = &Node{}
+	}
+
+	if options == nil {
+		options = &ParseNodeTreeOptions{false, nil}
 	}
 
 	root.Line = nil
@@ -248,13 +270,25 @@ func ParseNodeTree(scanner *IndentScanner, root *Node) (*Node, error) {
 				}
 			}
 		default:
-			// +N indent: error: extra indentation
-			return root, &ExtraIndentationError{line.Number}
+			// +N indent
+			if !options.IgnoreExtraIndentation {
+				// error: extra indentation
+				return root, &ExtraIndentationError{line.Number}
+			} else {
+				// ignore error: treat as +1 indent
+				bloc = prev
+			}
 		}
 
 		node := &Node{line, bloc, make([]*Node, 0)}
 		bloc.Children = append(bloc.Children, node)
 		prev = node
+
+		if options.Processor != nil {
+			if err := options.Processor(node, options); err != nil {
+				return root, err
+			}
+		}
 	}
 
 	return root, nil

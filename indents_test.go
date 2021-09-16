@@ -7,6 +7,7 @@ package indents
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"testing"
@@ -198,6 +199,14 @@ func TestIndentScannerErr(t *testing.T) {
 // ParseNodeTree tests //
 /////////////////////////
 
+func countNodes(root *Node) int {
+	count := len(root.Children)
+	for _, n := range root.Children {
+		count = count + countNodes(n)
+	}
+	return count
+}
+
 func testNode(t *testing.T, node *Node, parent *Node) {
 	// Test line only if not root
 	if node.Level() >= 0 {
@@ -213,26 +222,78 @@ func testNode(t *testing.T, node *Node, parent *Node) {
 	}
 }
 
+func testRootNode(t *testing.T, root *Node) {
+	assert.Assert(t, root.Parent == nil)
+	assert.Assert(t, root.Line == nil)
+	assert.Equal(t, root.Text(), "")
+	assert.Equal(t, root.Number(), -1)
+	assert.Equal(t, root.Level(), -1)
+}
+
+func runTestParseNodeTree(
+	text string,
+	style *Style,
+	options *ParseNodeTreeOptions,
+) (*Node, error) {
+	scan := makeIndentScanner(text, style)
+	return ParseNodeTree(scan, nil, options)
+}
+
 func TestParseNodeTree(t *testing.T) {
 	for k, text := range makeTestTexts() {
-		t.Run(k.name, func(t *testing.T) {
-			scan := makeIndentScanner(text, k.style)
-			root, err := ParseNodeTree(scan, nil)
-
-			assert.Assert(t, root.Parent == nil)
-			assert.Assert(t, root.Line == nil)
-			assert.Equal(t, root.Text(), "")
-			assert.Equal(t, root.Number(), -1)
-			assert.Equal(t, root.Level(), -1)
-
-			// If text has (extra) indentation, should return error
-			if strings.HasSuffix(k.name, "(extra)") {
+		if strings.HasSuffix(k.name, "(extra)") {
+			t.Run(k.name+"(error)", func(t *testing.T) {
+				_, err := runTestParseNodeTree(text, k.style, nil)
 				assert.ErrorContains(t, err, "Extra indentation at line ")
-			} else {
+			})
+
+			t.Run(k.name+"(ignore)", func(t *testing.T) {
+				options := &ParseNodeTreeOptions{
+					IgnoreExtraIndentation: true,
+				}
+				root, err := runTestParseNodeTree(text, k.style, options)
 				assert.NilError(t, err)
+				testRootNode(t, root)
 				testNode(t, root, nil)
-			}
-		})
+			})
+		} else {
+			t.Run(k.name, func(t *testing.T) {
+				root, err := runTestParseNodeTree(text, k.style, nil)
+				assert.NilError(t, err)
+				testRootNode(t, root)
+				testNode(t, root, nil)
+			})
+		}
+	}
+}
+
+func TestNodeProcessor(t *testing.T) {
+	for k, text := range makeTestTexts() {
+		if !strings.HasSuffix(k.name, "(extra)") {
+			t.Run(k.name+"(called)", func(t *testing.T) {
+				called := 0
+				options := &ParseNodeTreeOptions{
+					Processor: func(n *Node, opt *ParseNodeTreeOptions) error {
+						called++
+						return nil
+					},
+				}
+				root, err := runTestParseNodeTree(text, k.style, options)
+				assert.NilError(t, err)
+				assert.Equal(t, called, countNodes(root))
+			})
+
+			t.Run(k.name+"(error)", func(t *testing.T) {
+				testError := fmt.Errorf("test")
+				options := &ParseNodeTreeOptions{
+					Processor: func(n *Node, opt *ParseNodeTreeOptions) error {
+						return testError
+					},
+				}
+				_, err := runTestParseNodeTree(text, k.style, options)
+				assert.Equal(t, err, testError)
+			})
+		}
 	}
 }
 
@@ -316,11 +377,27 @@ func makeTestTexts() map[tk]string {
 	1
 0
 `
+	texts[tk{"1 level unindent (extra)", 5, ts, ts}] = `
+0
+	1
+			3
+	1
+0
+`
 	texts[tk{"1 level unindent with empty lines", 7, ts, ts}] = `
 0
 	1
 
 		2
+	1
+
+0
+`
+	texts[tk{"1 level unindent with empty lines (extra)", 7, ts, ts}] = `
+0
+	1
+
+			3
 	1
 
 0
