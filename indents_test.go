@@ -208,17 +208,30 @@ func countNodes(root *Node) int {
 }
 
 func testNode(t *testing.T, node *Node, parent *Node) {
-	// Test line only if not root
+	// Same parent?
+	assert.Equal(t, node.Parent, parent)
+
+	// Tests for nodes above root
 	if node.Level() >= 0 {
 		num := node.Number()
 		txt := node.Text()
 		assert.DeepEqual(t, parseLineLevel(num, txt), node.Line)
+		assert.Assert(t, node.IsAboveLevel(parent))
 	}
 
-	assert.Equal(t, node.Parent, parent)
+	var prev *Node
 
 	for _, n := range node.Children {
+		assert.Assert(t, n.IsAboveLevel(node))
+		assert.Assert(t, node.IsBelowLevel(n))
+
+		if prev != nil {
+			assert.Assert(t, n.IsSameLevel(prev))
+		}
+
 		testNode(t, n, node)
+
+		prev = n
 	}
 }
 

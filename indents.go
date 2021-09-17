@@ -188,6 +188,7 @@ type Node struct {
 	Children []*Node // This node's child nodes
 }
 
+// Gets the indentation level of this node, -1 if this is the root node.
 func (n *Node) Level() int {
 	if n.Line == nil {
 		return -1
@@ -196,6 +197,7 @@ func (n *Node) Level() int {
 	}
 }
 
+// Gets the line number of this node, -1 if this is the root node.
 func (n *Node) Number() int {
 	if n.Line == nil {
 		return -1
@@ -204,12 +206,28 @@ func (n *Node) Number() int {
 	}
 }
 
+// Gets the text of this node.
 func (n *Node) Text() string {
 	if n.Line == nil {
 		return ""
 	} else {
 		return n.Line.Text
 	}
+}
+
+// Tests if Node o indentation level is above this Node.
+func (n *Node) IsAboveLevel(o *Node) bool {
+	return n.Level() > o.Level()
+}
+
+// Tests if Node o indentation level is below this Node.
+func (n *Node) IsBelowLevel(o *Node) bool {
+	return n.Level() < o.Level()
+}
+
+// Tests if Node o indentation level is the same as this Node.
+func (n *Node) IsSameLevel(o *Node) bool {
+	return n.Level() == o.Level()
 }
 
 // Function to process nodes generated from ParseNodeTree
