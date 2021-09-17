@@ -215,17 +215,17 @@ func (n *Node) Text() string {
 	}
 }
 
-// Tests if Node o indentation level is above this Node.
+// Tests if this node's indentation level is above o's.
 func (n *Node) IsAboveLevel(o *Node) bool {
 	return n.Level() > o.Level()
 }
 
-// Tests if Node o indentation level is below this Node.
+// Tests if this node's indentation level is below o's.
 func (n *Node) IsBelowLevel(o *Node) bool {
 	return n.Level() < o.Level()
 }
 
-// Tests if Node o indentation level is the same as this Node.
+// Tests if this node's indentation level is the same as o's.
 func (n *Node) IsSameLevel(o *Node) bool {
 	return n.Level() == o.Level()
 }
