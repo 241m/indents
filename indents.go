@@ -212,6 +212,7 @@ func (n *Node) Text() string {
 	}
 }
 
+// Function to process nodes generated from ParseNodeTree
 type NodeProcessor func(node *Node, options *ParseNodeTreeOptions) error
 
 // Options to pass to ParseNodeTree function to customize its behaviour.
