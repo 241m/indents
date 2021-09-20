@@ -124,6 +124,17 @@ func TestAutoDetect(t *testing.T) {
 	}
 }
 
+func ExampleAutoDetect() {
+	style := AutoDetect("  two spaces")
+
+	fmt.Printf("Style.Char: [%c]\n", style.Char)
+	fmt.Printf("Style.Size:  %d\n", style.Size)
+
+	// Output:
+	// Style.Char: [ ]
+	// Style.Size:  2
+}
+
 func TestStyleSpaces(t *testing.T) {
 	for n := 0; n < 10; n++ {
 		assert.DeepEqual(t, *Spaces(n), Style{' ', n})
@@ -166,41 +177,27 @@ func makeIndentScanner(text string, style *Style) *IndentScanner {
 	return NewIndentScanner(reader, style)
 }
 
-// key   - the `tk` test key (see makeTestTexts)
-// text  - indendeted text formatted properly (see makeTestTexts)
-// count - expected line count
-func runIndentScannerTest(
-	t *testing.T,
-	key tk,
-	text string,
-	count int,
-) *IndentScanner {
-	scanner := makeIndentScanner(text, key.style)
-
-	var n int
-
-	for n = 0; scanner.Scan(); n++ {
-		line := scanner.Line()
-		lnum := n + 1
-		assert.Equal(t, scanner.lines, lnum)
-		assert.DeepEqual(
-			t,
-			line,
-			parseLineLevel(lnum, line.Text),
-		)
-	}
-
-	assert.Equal(t, n, count)
-	assert.Equal(t, scanner.Lines(), count)
-	assert.DeepEqual(t, scanner.Style(), key.detect)
-
-	return scanner
-}
-
 func TestIndentScanner(t *testing.T) {
 	for k, text := range makeTestTexts() {
 		t.Run(k.name, func(t *testing.T) {
-			runIndentScannerTest(t, k, text, k.lines)
+			scanner := makeIndentScanner(text, k.style)
+
+			var n int
+
+			for n = 0; scanner.Scan(); n++ {
+				line := scanner.Line()
+				lnum := n + 1
+				assert.Equal(t, scanner.lines, lnum)
+				assert.DeepEqual(
+					t,
+					line,
+					parseLineLevel(lnum, line.Text),
+				)
+			}
+
+			assert.Equal(t, n, k.lines)
+			assert.Equal(t, scanner.Lines(), k.lines)
+			assert.DeepEqual(t, scanner.Style(), k.detect)
 		})
 	}
 }
