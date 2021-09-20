@@ -107,7 +107,7 @@ type IndentScanner struct {
 	lines   int
 }
 
-// Crete a new IndentScanner that reads data from Reader r.
+// Creates a new IndentScanner that reads data from Reader r.
 // The style argument sets the assumed indentation style of the data.
 // If it's nil, the scanner will try to auto-detect the style
 // using the AutoDetect function.
