@@ -202,6 +202,32 @@ func TestIndentScanner(t *testing.T) {
 	}
 }
 
+func ExampleIndentScanner() {
+	text := "line one\n"
+	text += "  line 2\n"
+	text += "    line\n"
+	text += "four"
+
+	reader := strings.NewReader(text)
+	scanner := NewIndentScanner(reader, nil)
+
+	for scanner.Scan() {
+		line := scanner.Line()
+		fmt.Printf(
+			"Line %d, level %d: '%s'\n",
+			line.Number,
+			line.Level,
+			line.Text,
+		)
+	}
+
+	// Output:
+	// Line 1, level 0: 'line one'
+	// Line 2, level 1: 'line 2'
+	// Line 3, level 2: 'line'
+	// Line 4, level 0: 'four'
+}
+
 func TestIndentScannerErr(t *testing.T) {
 	err := errors.New("test error")
 	rdr := iotest.ErrReader(err)
