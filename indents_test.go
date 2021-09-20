@@ -40,6 +40,28 @@ func TestStyleLevel(t *testing.T) {
 	}
 }
 
+func ExampleStyle_Level() {
+	// Even numbered indents:
+	style := &Style{Char: '.', Size: 2}
+	fmt.Println(style.Level("..two spaces in")) // Level=1
+	fmt.Println(style.Level("....four spaces")) // Levels=2
+	fmt.Println(style.Level(".....five space")) // Levels=2 (rounds to Size)
+
+	// Odd numbered indents are also ok:
+	oddStyle := &Style{Char: '-', Size: 3}
+	fmt.Println(oddStyle.Level("---three spaces")) // Level=1
+	fmt.Println(oddStyle.Level("------six space")) // Levels=2
+	fmt.Println(oddStyle.Level("-------seven sp")) // Levels=2
+
+	// Output:
+	// 1
+	// 2
+	// 2
+	// 1
+	// 2
+	// 2
+}
+
 func TestStyleLevelOdd(t *testing.T) {
 	tests := map[string]struct {
 		level int
